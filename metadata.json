@@ -1,0 +1,6 @@
+{
+  "name": "EcoPilot AI",
+  "description": "EcoPilot AI is a comprehensive carbon reduction assistant that helps you measure, understand, and systematically reduce your carbon footprint through personalized AI recommendations, real-time What-If scenario simulations, digital twins, and weekly carbon health reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
