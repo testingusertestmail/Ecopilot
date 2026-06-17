@@ -30,6 +30,33 @@ function getGenAI(): GoogleGenAI | null {
   return aiClient;
 }
 
+// Resilient API calling helper with Exponential Backoff and fallback model sequence
+async function generateContentWithRetry(ai: any, params: any, retries = 2, delayMs = 1000): Promise<any> {
+  const modelsToTry = [params.model || "gemini-3.5-flash", "gemini-3.1-flash-lite"];
+  let lastError: any = null;
+
+  for (const modelName of modelsToTry) {
+    const currentParams = { ...params, model: modelName };
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        console.log(`[EcoPilot AI Server] Calling generateContent with model: ${modelName} (Attempt ${attempt + 1}/${retries + 1})...`);
+        const response = await ai.models.generateContent(currentParams);
+        return response;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`[EcoPilot AI Server] Model ${modelName} (Attempt ${attempt + 1}) failed: ${error.message || error}`);
+        
+        // Don't sleep on final attempt of the current model
+        if (attempt < retries) {
+          const waitTime = delayMs * Math.pow(2, attempt);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+    }
+  }
+  throw lastError;
+}
+
 // -------------------------------------------------------------
 // AI API ENDPOINTS
 // -------------------------------------------------------------
@@ -102,7 +129,7 @@ Sort recommendations strictly by maximum achievable priority score. Keep advice 
 Format the output strictly as a JSON list of objects.
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -197,7 +224,7 @@ Make the tone professional, scannable, and extremely clean. Use bullet points an
 Do not output self-praising or flowery adjectives about yourself.
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
     });
@@ -253,7 +280,7 @@ For each challenge, output a JSON object containing:
 Return exactly a JSON list of objects under the key "challenges".
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -342,7 +369,7 @@ Return a JSON object with:
 - recommendations (list of exactly 3 clean, highly actionable recommendation strings)
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -437,7 +464,7 @@ Keep your responses conversational and under 150 words.
       parts: [{ text: m.text }],
     }));
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: [
         { role: "user", parts: [{ text: instructions }] },
@@ -498,7 +525,7 @@ For each month, provide:
 Return a JSON object with a single list under the key "roadmap". Sort by monthIndex.
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
