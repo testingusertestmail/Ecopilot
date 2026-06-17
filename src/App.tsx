@@ -57,6 +57,7 @@ export default function App() {
 
   // Load from localStorage on mount
   useEffect(() => {
+    document.title = "EcoPilot AI — Carbon Footprint Tracker";
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       try {
